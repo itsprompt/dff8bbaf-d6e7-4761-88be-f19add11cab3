@@ -1,0 +1,321 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>แบบทดสอบสัญชาตญาณทางภาษา</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f4f7fc;
+      color: #17243b;
+    }
+
+    main {
+      max-width: 620px;
+      margin: 35px auto;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 27px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: #65718a;
+      line-height: 1.7;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 18px;
+      box-shadow: 0 5px 25px #152a5010;
+      margin-top: 20px;
+    }
+
+    .progress {
+      height: 8px;
+      background: #e7edf7;
+      border-radius: 20px;
+      overflow: hidden;
+      margin: 18px 0;
+    }
+
+    #bar {
+      height: 100%;
+      width: 0;
+      background: #356bd9;
+      transition: width .25s;
+    }
+
+    .choice {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: #f8faff;
+      color: #17243b;
+      border: 1px solid #e2e8f3;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 10px 0;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .choice:hover {
+      border-color: #356bd9;
+      background: #eef4ff;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    .primary {
+      background: #356bd9;
+      color: white;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 18px;
+    }
+
+    .result-row {
+      margin: 22px 0;
+    }
+
+    .result-label {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .result-track {
+      background: #e7edf7;
+      border-radius: 20px;
+      height: 12px;
+      overflow: hidden;
+    }
+
+    .result-fill {
+      background: #356bd9;
+      height: 100%;
+      border-radius: 20px;
+    }
+
+    #results { display: none; }
+    #questionNumber { font-size: 14px; }
+    #questionText { font-size: 21px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>แบบทดสอบสัญชาตญาณทางภาษา</h1>
+    <p>
+      เมื่อเจอสถานการณ์ต่าง ๆ
+      คุณจะนึกหรือพูดภาษาใดขึ้นมาเป็นภาษาแรก?
+      เลือกตามความรู้สึกแรกโดยไม่ต้องคิดนาน
+      ไม่มีคำตอบถูกหรือผิด
+    </p>
+
+    <section class="card" id="quiz">
+      <div id="questionNumber"></div>
+      <div class="progress">
+        <div id="bar"></div>
+      </div>
+      <h2 id="questionText"></h2>
+      <div id="choices"></div>
+    </section>
+
+    <section class="card" id="results">
+      <h2>ผลการทดสอบของคุณ</h2>
+      <p>ภาษาที่คุณเลือกโดยสัญชาตญาณ</p>
+      <div id="resultBars"></div>
+      <p id="summary"></p>
+      <button class="primary" onclick="shareResults()">
+        แชร์ผลการทดสอบ
+      </button>
+      <button class="primary" onclick="restart()">
+        ทำแบบทดสอบอีกครั้ง
+      </button>
+    </section>
+  </main>
+
+  <script>
+    const questions = [
+      "คุณทำโทรศัพท์ตกพื้นโดยไม่ตั้งใจ",
+      "มีคนลบข้อมูลสำคัญของคุณโดยไม่ตั้งใจ",
+      "คุณได้รับข่าวดีที่รอคอยมานาน",
+      "คนในครอบครัวถามว่าเย็นนี้อยากกินอะไร",
+      "คุณเห็นวิวธรรมชาติที่สวยมาก",
+      "คุณหาโทรศัพท์ของตัวเองไม่เจอ",
+      "คุณต้องการบอกใครบางคนว่าเขาสำคัญกับคุณมาก",
+      "มีคนให้ของขวัญคุณโดยไม่คาดคิด",
+      "เวลาพูดกับตัวเองตามลำพัง",
+      "คุณตกใจเพราะได้ยินเสียงดังอย่างกะทันหัน"
+    ];
+
+    const languages = [
+      { key: "English", label: "English" },
+      { key: "Thai", label: "ไทย" },
+      { key: "Chinese", label: "中文" }
+    ];
+
+    let current = 0;
+    let answers = [];
+
+    function renderQuestion() {
+      document.getElementById("questionNumber").textContent =
+        `คำถามที่ ${current + 1} จาก ${questions.length}`;
+
+      document.getElementById("bar").style.width =
+        `${(current / questions.length) * 100}%`;
+
+      document.getElementById("questionText").textContent =
+        questions[current];
+
+      const choices = document.getElementById("choices");
+      choices.innerHTML = "";
+
+      languages.forEach(lang => {
+        const button = document.createElement("button");
+        button.className = "choice";
+        button.textContent = lang.label;
+        button.onclick = () => selectAnswer(lang.key);
+        choices.appendChild(button);
+      });
+    }
+
+    function selectAnswer(language) {
+      answers.push(language);
+      current++;
+
+      if (current < questions.length) {
+        renderQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    function getCounts() {
+      return Object.fromEntries(
+        languages.map(lang => [
+          lang.key,
+          answers.filter(a => a === lang.key).length
+        ])
+      );
+    }
+
+    function getSummary(counts) {
+      const max = Math.max(...Object.values(counts));
+      const winners = languages.filter(
+        lang => counts[lang.key] === max
+      );
+
+      if (winners.length > 1) {
+        return "คุณเลือกหลายภาษาในจำนวนที่เท่ากัน " +
+          "แสดงว่าภาษาที่นึกถึงอาจเปลี่ยนไปตามสถานการณ์";
+      }
+
+      return `ภาษาที่คุณเลือกบ่อยที่สุดคือ ${winners[0].label} ` +
+        "ซึ่งอาจเป็นภาษาที่คุณนึกถึงได้อย่างเป็นธรรมชาติ" +
+        "ในสถานการณ์เหล่านี้";
+    }
+
+    function showResults() {
+      document.getElementById("quiz").style.display = "none";
+      document.getElementById("results").style.display = "block";
+
+      const counts = getCounts();
+      const container = document.getElementById("resultBars");
+      container.innerHTML = "";
+
+      languages.forEach(lang => {
+        const count = counts[lang.key];
+        const percent = Math.round(
+          count / questions.length * 100
+        );
+
+        const row = document.createElement("div");
+        row.className = "result-row";
+
+        const label = document.createElement("div");
+        label.className = "result-label";
+
+        const name = document.createElement("span");
+        name.textContent = lang.label;
+
+        const value = document.createElement("span");
+        value.textContent = `${percent}% (${count}/10)`;
+
+        label.append(name, value);
+
+        const track = document.createElement("div");
+        track.className = "result-track";
+
+        const fill = document.createElement("div");
+        fill.className = "result-fill";
+        fill.style.width = `${percent}%`;
+
+        track.appendChild(fill);
+        row.append(label, track);
+        container.appendChild(row);
+      });
+
+      document.getElementById("summary").textContent =
+        getSummary(counts) +
+        " ผลนี้สะท้อนคำตอบในแบบทดสอบเท่านั้น " +
+        "ไม่ได้วัดความสามารถทางภาษา";
+    }
+
+    async function shareResults() {
+      const counts = getCounts();
+      const text =
+        "ผลแบบทดสอบสัญชาตญาณทางภาษา\n\n" +
+        languages.map(lang =>
+          `${lang.label}: ${counts[lang.key] * 10}%`
+        ).join("\n") +
+        "\n\n" + getSummary(counts);
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "ผลการทดสอบทางภาษา",
+            text
+          });
+          return;
+        } catch (error) {
+          if (error.name === "AbortError") return;
+        }
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("คัดลอกผลการทดสอบแล้ว");
+      } catch {
+        window.prompt("คัดลอกผลการทดสอบ", text);
+      }
+    }
+
+    function restart() {
+      current = 0;
+      answers = [];
+      document.getElementById("results").style.display = "none";
+      document.getElementById("quiz").style.display = "block";
+      renderQuestion();
+    }
+
+    renderQuestion();
+  </script>
+</body>
+</html>
